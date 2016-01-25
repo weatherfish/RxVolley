@@ -15,8 +15,6 @@
  */
 package com.kymjs.rxvolley.client;
 
-import android.graphics.Bitmap;
-
 import java.util.Map;
 
 /**
@@ -54,7 +52,7 @@ public abstract class HttpCallback {
      *
      * @param t HttpRequest返回信息
      */
-    public void onSuccess(String t) {
+    public <T> void onSuccess(T t) {
     }
 
     /**
@@ -80,13 +78,5 @@ public abstract class HttpCallback {
      * Http请求结束后回调
      */
     public void onFinish() {
-    }
-
-    /**
-     * 仅请求bitmap中有效
-     *
-     * @param bitmap
-     */
-    public void onSuccess(Map<String, String> headers, Bitmap bitmap) {
     }
 }

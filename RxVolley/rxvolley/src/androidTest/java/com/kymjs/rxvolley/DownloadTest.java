@@ -45,7 +45,7 @@ public class DownloadTest extends AndroidTestCase {
             }
 
             @Override
-            public void onSuccess(String t) {
+            public <String> void onSuccess(String t) {
                 super.onSuccess(t);
                 Loger.debug("=====onSuccess" + t);
                 Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper.getMainLooper

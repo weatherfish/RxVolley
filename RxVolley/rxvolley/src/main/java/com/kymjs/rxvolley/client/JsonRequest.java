@@ -56,6 +56,7 @@ public class JsonRequest extends Request<byte[]> {
                 map.put(entry.k, entry.v);
             }
             mCallback.onSuccess(map, response);
+            mCallback.onSuccess(getConvertAdapter().convertTo(map, response));
         }
     }
 

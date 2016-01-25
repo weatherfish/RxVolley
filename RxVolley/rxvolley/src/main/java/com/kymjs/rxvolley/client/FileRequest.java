@@ -217,6 +217,7 @@ public class FileRequest extends Request<byte[]> {
             }
             if (response == null) response = new byte[0];
             mCallback.onSuccess(map, response);
+            mCallback.onSuccess(getConvertAdapter().convertTo(map, response));
         }
     }
 }

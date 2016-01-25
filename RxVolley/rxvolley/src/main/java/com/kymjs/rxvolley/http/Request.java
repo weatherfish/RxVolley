@@ -23,6 +23,7 @@ import com.kymjs.rxvolley.client.HttpCallback;
 import com.kymjs.rxvolley.client.ProgressListener;
 import com.kymjs.rxvolley.client.RequestConfig;
 import com.kymjs.rxvolley.interf.ICache;
+import com.kymjs.rxvolley.interf.IConvertAdapter;
 import com.kymjs.rxvolley.toolbox.HttpParamsEntry;
 import com.kymjs.rxvolley.toolbox.Loger;
 
@@ -51,6 +52,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     protected ProgressListener mProgressListener;
     protected RequestQueue mRequestQueue;
     private ICache.Entry mCacheEntry = null;
+    private IConvertAdapter<?> adapter;
 
     public Request(RequestConfig config, HttpCallback callback) {
         if (config == null) {
@@ -91,6 +93,14 @@ public abstract class Request<T> implements Comparable<Request<T>> {
 
     public HttpCallback getCallback() {
         return mCallback;
+    }
+
+    public void setConvertAdapter(IConvertAdapter<?> adapter) {
+        this.adapter = adapter;
+    }
+
+    public IConvertAdapter<?> getConvertAdapter() {
+        return adapter;
     }
 
     /**

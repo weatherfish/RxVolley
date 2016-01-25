@@ -25,10 +25,12 @@ import com.kymjs.rxvolley.client.HttpParams;
 import com.kymjs.rxvolley.client.JsonRequest;
 import com.kymjs.rxvolley.client.ProgressListener;
 import com.kymjs.rxvolley.client.RequestConfig;
+import com.kymjs.rxvolley.http.DefaultConvertAdapter;
 import com.kymjs.rxvolley.http.Request;
 import com.kymjs.rxvolley.http.RequestQueue;
 import com.kymjs.rxvolley.http.RetryPolicy;
 import com.kymjs.rxvolley.interf.ICache;
+import com.kymjs.rxvolley.interf.IConvertAdapter;
 import com.kymjs.rxvolley.rx.Result;
 import com.kymjs.rxvolley.rx.RxBus;
 import com.kymjs.rxvolley.toolbox.FileUtils;
@@ -36,6 +38,7 @@ import com.kymjs.rxvolley.toolbox.FileUtils;
 import java.io.File;
 
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * 主入口
@@ -105,6 +108,7 @@ public class RxVolley {
         private int contentType;
         private HttpCallback callback;
         private Request<?> request;
+        private IConvertAdapter<?> adapter;
         private ProgressListener progressListener;
         private RequestConfig httpConfig = new RequestConfig();
 
@@ -123,6 +127,15 @@ public class RxVolley {
             this.contentType = contentType;
             return this;
         }
+
+        /**
+         * 转换适配器,可利用GSON,FastJSON等转换网络请求数据
+         */
+        public Builder convertAdapter(IConvertAdapter<?> adapter) {
+            this.adapter = adapter;
+            return this;
+        }
+
 
         /**
          * 请求回调,不需要可以为空
@@ -258,6 +271,11 @@ public class RxVolley {
                     request = new FormRequest(httpConfig, params, callback);
                 }
 
+                if (adapter == null) {
+                    adapter = new DefaultConvertAdapter();
+                }
+                request.setConvertAdapter(adapter);
+                
                 request.setOnProgressListener(progressListener);
 
                 if (TextUtils.isEmpty(httpConfig.mUrl)) {
@@ -275,7 +293,12 @@ public class RxVolley {
          */
         public Observable<Result> getResult() {
             doTask();
-            return RxBus.getDefault().take(httpConfig.mUrl);
+            return RxBus.getDefault().take(Result.class).filter(new Func1<Result, Boolean>() {
+                @Override
+                public Boolean call(Result result) {
+                    return httpConfig.mUrl.equals(result.url);
+                }
+            });
         }
 
         /**

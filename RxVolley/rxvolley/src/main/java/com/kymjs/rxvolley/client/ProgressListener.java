@@ -18,12 +18,12 @@ package com.kymjs.rxvolley.client;
 
 /**
  * Callback interface for delivering the progress of the responses.
- *
- * @author Jordan Gout (https://github.com/DWorkS/VolleyPlus) on 1/20/16.
  */
 public interface ProgressListener {
     /**
      * Callback method thats called on each byte transfer.
+     * @param transferredBytes 进度
+     * @param totalSize 总量
      */
     void onProgress(long transferredBytes, long totalSize);
 }

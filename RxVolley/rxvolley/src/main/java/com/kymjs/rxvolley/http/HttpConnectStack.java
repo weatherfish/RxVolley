@@ -84,6 +84,8 @@ public class HttpConnectStack implements IHttpStack {
             url = rewritten;
         }
         URL parsedUrl = new URL(url);
+        HTTPSTrustManager.allowAllSSL();
+        
         HttpURLConnection connection = openConnection(parsedUrl, request);
         for (HttpParamsEntry entry : header) {
             connection.addRequestProperty(entry.k, entry.v);
@@ -146,9 +148,6 @@ public class HttpConnectStack implements IHttpStack {
             if (mSslSocketFactory != null) {
                 ((HttpsURLConnection) connection)
                         .setSSLSocketFactory(mSslSocketFactory);
-            } else {
-                //信任所有证书
-                HTTPSTrustManager.allowAllSSL();
             }
         }
         return connection;

@@ -3,7 +3,8 @@ package com.kymjs.rxvolley;
 import android.test.AndroidTestCase;
 
 import com.kymjs.rxvolley.client.HttpCallback;
-import com.kymjs.rxvolley.client.HttpParams;
+import com.kymjs.rxvolley.http.RequestQueue;
+import com.kymjs.rxvolley.rx.Result;
 import com.kymjs.rxvolley.toolbox.Loger;
 
 import org.junit.After;
@@ -11,6 +12,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
+
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * @author kymjs (http://www.kymjs.com/) on 1/5/16.
@@ -21,7 +27,7 @@ public class GetRequestTest extends AndroidTestCase {
 
     @Before
     public void setUp() throws Exception {
-        RxVolley.CACHE_FOLDER = getContext().getCacheDir();
+        RxVolley.setRequestQueue(RequestQueue.newRequestQueue(getContext().getCacheDir()));
 
         callback = new HttpCallback() {
             @Override
@@ -42,8 +48,7 @@ public class GetRequestTest extends AndroidTestCase {
             }
 
             @Override
-            public void onSuccess(String t) {
-                super.onSuccess(t);
+            public <String> void onSuccess(String t) {
                 Loger.debug("=====onSuccess" + t);
             }
 
@@ -70,22 +75,42 @@ public class GetRequestTest extends AndroidTestCase {
     @After
     public void tearDown() throws Exception {
     }
+//
+//    @Test
+//    public void testGetOnSuccess() throws Exception {
+//        RxVolley.get("http://www.oschina.net/action/api/news_list", callback);
+//    }
+//
+//    @Test
+//    public void testGetOnFailure() throws Exception {
+//        RxVolley.get("http://failure/url/", callback);
+//    }
+//
+//    @Test
+//    public void testGetWithParams() throws Exception {
+//        HttpParams params = new HttpParams();
+//        params.put("pageIndex", 1);
+//        params.put("pageSize", 20);
+//        RxVolley.get("http://www.oschina.net/action/api/news_list", params, callback);
+//    }
 
     @Test
-    public void testGetOnSuccess() throws Exception {
-        RxVolley.get("http://www.oschina.net/action/api/news_list", callback);
-    }
+    public void testGetRxJava() throws Exception {
+        new RxVolley.Builder().url("http://www.oschina.net/action/api/news_list").getResult()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(new Func1<Result, String>() {
+                    @Override
+                    public String call(Result result) {
+                        return new String(result.data);
+                    }
+                })
+                .subscribe(new Action1<String>() {
+                    @Override
+                    public void call(String s) {
+                        Loger.debug("=====onSuccess" + s);
+                    }
+                });
+    }   
 
-    @Test
-    public void testGetOnFailure() throws Exception {
-        RxVolley.get("http://failure/url/", callback);
-    }
-
-    @Test
-    public void testGetWithParams() throws Exception {
-        HttpParams params = new HttpParams();
-        params.put("pageIndex", 1);
-        params.put("pageSize", 20);
-        RxVolley.get("http://www.oschina.net/action/api/news_list", params, callback);
-    }
 }
