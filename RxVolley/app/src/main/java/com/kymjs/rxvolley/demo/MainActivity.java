@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }, new HttpCallback() {
                     @Override
-                    public void onSuccess(String t) {
+                    public <String>  void onSuccess(String t) {
                         Loger.debug("=====完成" + t);
                     }
                 });
@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }, new HttpCallback() {
                     @Override
-                    public void onSuccess(String t) {
+                    public <String>  void onSuccess(String t) {
                         Loger.debug("====success" + t);
                     }
 
