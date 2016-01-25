@@ -20,15 +20,18 @@ import android.graphics.Bitmap;
 
 import com.kymjs.core.bitmap.toolbox.CreateBitmap;
 import com.kymjs.rxvolley.client.HttpCallback;
+import com.kymjs.rxvolley.http.DefaultConvertAdapter;
 import com.kymjs.rxvolley.http.HttpHeaderParser;
 import com.kymjs.rxvolley.http.NetworkResponse;
 import com.kymjs.rxvolley.http.Request;
 import com.kymjs.rxvolley.http.Response;
 import com.kymjs.rxvolley.http.VolleyError;
+import com.kymjs.rxvolley.interf.IConvertAdapter;
 import com.kymjs.rxvolley.interf.IPersistence;
 import com.kymjs.rxvolley.toolbox.HttpParamsEntry;
 import com.kymjs.rxvolley.toolbox.Loger;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -91,7 +94,22 @@ public class ImageRequest extends Request<Bitmap> implements IPersistence {
             for (HttpParamsEntry entry : headers) {
                 map.put(entry.k, entry.v);
             }
-            mCallback.onSuccess(map, response);
+            byte[] result = toBytes(response);
+            mCallback.onSuccess(map, result);
+
+            IConvertAdapter adapter = getConvertAdapter();
+            //if not build IConvertAdapter, direct return response
+            if (adapter instanceof DefaultConvertAdapter) {
+                mCallback.onSuccess(response);
+            } else {
+                mCallback.onSuccess(getConvertAdapter().convertTo(map, result));
+            }
         }
+    }
+
+    private static byte[] toBytes(Bitmap bm) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        return baos.toByteArray();
     }
 }
