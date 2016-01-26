@@ -40,6 +40,7 @@ import java.util.Map;
 
 import rx.Observable;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * 主入口
@@ -294,12 +295,14 @@ public class RxVolley {
          */
         public Observable<Result> getResult() {
             doTask();
-            return RxBus.getDefault().take(Result.class).filter(new Func1<Result, Boolean>() {
-                @Override
-                public Boolean call(Result result) {
-                    return httpConfig.mUrl.equals(result.url);
-                }
-            });
+            return RxBus.getDefault().take(Result.class)
+                    .filter(new Func1<Result, Boolean>() {
+                        @Override
+                        public Boolean call(Result result) {
+                            return httpConfig.mUrl.equals(result.url);
+                        }
+                    })
+                    .subscribeOn(Schedulers.io());
         }
 
         /**
