@@ -28,10 +28,10 @@ import com.kymjs.rxvolley.http.Response;
 import com.kymjs.rxvolley.http.VolleyError;
 import com.kymjs.rxvolley.interf.IConvertAdapter;
 import com.kymjs.rxvolley.interf.IPersistence;
+import com.kymjs.rxvolley.toolbox.FileUtils;
 import com.kymjs.rxvolley.toolbox.HttpParamsEntry;
 import com.kymjs.rxvolley.toolbox.Loger;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -94,7 +94,7 @@ public class ImageRequest extends Request<Bitmap> implements IPersistence {
             for (HttpParamsEntry entry : headers) {
                 map.put(entry.k, entry.v);
             }
-            byte[] result = toBytes(response);
+            byte[] result = FileUtils.toBytes(response);
             mCallback.onSuccess(map, result);
 
             IConvertAdapter adapter = getConvertAdapter();
@@ -105,11 +105,5 @@ public class ImageRequest extends Request<Bitmap> implements IPersistence {
                 mCallback.onSuccess(getConvertAdapter().convertTo(map, result));
             }
         }
-    }
-
-    private static byte[] toBytes(Bitmap bm) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.PNG, 100, baos);
-        return baos.toByteArray();
     }
 }

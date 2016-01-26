@@ -15,6 +15,7 @@
  */
 package com.kymjs.rxvolley.toolbox;
 
+import android.graphics.Bitmap;
 import android.os.Environment;
 
 import java.io.BufferedInputStream;
@@ -90,5 +91,11 @@ public final class FileUtils {
                         FileUtils.class.getClass().getName(), e);
             }
         }
+    }
+
+    public static byte[] toBytes(Bitmap bm) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        return baos.toByteArray();
     }
 }

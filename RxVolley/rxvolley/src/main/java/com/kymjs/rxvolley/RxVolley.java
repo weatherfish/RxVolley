@@ -36,6 +36,7 @@ import com.kymjs.rxvolley.rx.RxBus;
 import com.kymjs.rxvolley.toolbox.FileUtils;
 
 import java.io.File;
+import java.util.Map;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -275,7 +276,7 @@ public class RxVolley {
                     adapter = new DefaultConvertAdapter();
                 }
                 request.setConvertAdapter(adapter);
-                
+
                 request.setOnProgressListener(progressListener);
 
                 if (TextUtils.isEmpty(httpConfig.mUrl)) {
@@ -363,11 +364,18 @@ public class RxVolley {
      * @param progressListener 下载进度回调
      * @param callback         回调
      */
-    public static void download(String storeFilePath, String url, ProgressListener
+    public static void download(final String storeFilePath, String url, ProgressListener
             progressListener, HttpCallback callback) {
         RequestConfig config = new RequestConfig();
         config.mUrl = url;
         FileRequest request = new FileRequest(storeFilePath, config, callback);
+        IConvertAdapter<File> adapter = new IConvertAdapter<File>() {
+            @Override
+            public File convertTo(Map<String, String> headers, byte[] t) {
+                return new File(storeFilePath);
+            }
+        };
+        request.setConvertAdapter(adapter);
         request.setOnProgressListener(progressListener);
         new Builder().setRequest(request).doTask();
     }

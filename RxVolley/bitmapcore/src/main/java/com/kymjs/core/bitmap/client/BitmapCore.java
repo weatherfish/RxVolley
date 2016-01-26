@@ -29,7 +29,6 @@ import com.kymjs.core.bitmap.DiskImageDisplayer;
 import com.kymjs.core.bitmap.ImageBale;
 import com.kymjs.core.bitmap.ImageDisplayer;
 import com.kymjs.core.bitmap.interf.IBitmapCache;
-import com.kymjs.core.bitmap.toolbox.CreateBitmap;
 import com.kymjs.core.bitmap.toolbox.DensityUtils;
 import com.kymjs.rxvolley.RxVolley;
 import com.kymjs.rxvolley.client.HttpCallback;
@@ -37,11 +36,9 @@ import com.kymjs.rxvolley.http.Request;
 import com.kymjs.rxvolley.http.RequestQueue;
 import com.kymjs.rxvolley.http.RetryPolicy;
 import com.kymjs.rxvolley.rx.RxBus;
-import com.kymjs.rxvolley.rx.Result;
 import com.kymjs.rxvolley.toolbox.Loger;
 
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -312,31 +309,22 @@ public final class BitmapCore {
                     }
 
                     @Override
-                    public void onSuccess(Map<String, String> headers, Bitmap bitmap) {
+                    public <T> void onSuccess(T t) {
                         if (config.mUrl.equals(view.getTag())) {
-                            setViewImage(view, bitmap);
+                            setViewImage(view, (Bitmap) t);
                         }
-                        if (callback != null) callback.onSuccess(headers, bitmap);
+                        if (callback != null) callback.onSuccess(t);
                     }
                 };
         }
 
         public Observable<Bitmap> getResult() {
             doTask();
-            return RxBus.getDefault().take(config.mUrl)
-                    .filter(new Func1<Result, Boolean>() {
+            return RxBus.getDefault().take(Bitmap.class)
+                    .filter(new Func1<Bitmap, Boolean>() {
                         @Override
-                        public Boolean call(Result result) {
-                            return result != null
-                                    && result.data != null
-                                    && result.data.length != 0;
-                        }
-                    })
-                    .map(new Func1<Result, Bitmap>() {
-                        @Override
-                        public Bitmap call(Result result) {
-                            return CreateBitmap.create(result.data,
-                                    config.maxWidth, config.maxHeight);
+                        public Boolean call(Bitmap result) {
+                            return result != null;
                         }
                     })
                     .subscribeOn(Schedulers.io());

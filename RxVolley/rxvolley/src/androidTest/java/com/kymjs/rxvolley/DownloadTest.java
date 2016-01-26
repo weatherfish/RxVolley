@@ -26,58 +26,60 @@ public class DownloadTest extends AndroidTestCase {
             @Override
             public void onPreStart() {
                 Loger.debug("=====onPreStart");
+
+//                测试类是运行在异步的,所以此处断言会异常
+//                assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
             }
 
             @Override
             public void onPreHttp() {
                 super.onPreHttp();
                 Loger.debug("=====onPreHttp");
-                Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper.getMainLooper
-                        ().getThread()));
+                assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
             }
 
             @Override
             public void onSuccessInAsync(byte[] t) {
-                super.onSuccessInAsync(t);
                 Loger.debug("=====onSuccessInAsync" + new String(t));
-                Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper.getMainLooper
-                        ().getThread()));
+
+                assertNotNull(t);
+                
+                //onSuccessInAsync 一定是运行在异步
+                assertFalse(Thread.currentThread() == Looper.getMainLooper().getThread());
             }
 
             @Override
             public <String> void onSuccess(String t) {
-                super.onSuccess(t);
                 Loger.debug("=====onSuccess" + t);
-                Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper.getMainLooper
-                        ().getThread()));
+                assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
             }
 
             @Override
             public void onSuccess(Map<String, String> headers, byte[] t) {
-                super.onSuccess(headers, t);
-                Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper.getMainLooper
-                        ().getThread()));
+                assertNotNull(t);
                 Loger.debug("=====onSuccessWithHeader" + headers.size() + new String(t));
+                assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
             }
 
             @Override
             public void onFailure(int errorNo, String strMsg) {
                 super.onFailure(errorNo, strMsg);
-                Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper.getMainLooper
-                        ().getThread()));
                 Loger.debug("=====onFailure" + strMsg);
+                assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
             }
 
             @Override
             public void onFinish() {
                 super.onFinish();
-                Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper.getMainLooper
-                        ().getThread()));
                 Loger.debug("=====onFinish");
+                assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
             }
         };
     }
 
+    /**
+     * 下载方法在单元测试中总是会被中断,在APP中测试就工作正常,猜测应该是测试线程不允许有长时间不结束的线程
+     */
     @Test
     public void testDownload() throws Exception {
         RxVolley.download(FileUtils.getSDCardPath() + "/a.apk",
@@ -86,8 +88,7 @@ public class DownloadTest extends AndroidTestCase {
                     @Override
                     public void onProgress(long transferredBytes, long totalSize) {
                         Loger.debug(transferredBytes + "======" + totalSize);
-                        Loger.debug("=====当前线程是主线程" + (Thread.currentThread() == Looper
-                                .getMainLooper().getThread()));
+                        assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
                     }
                 }, callback);
     }

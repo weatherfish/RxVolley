@@ -90,7 +90,6 @@ public class NetworkDispatcher extends Thread {
                     request.finish("任务已经取消");
                     continue;
                 }
-
                 mDelivery.postStartHttp(request);
                 addTrafficStatsTag(request);
                 NetworkResponse networkResponse = mNetwork.performRequest(request);
@@ -108,6 +107,9 @@ public class NetworkDispatcher extends Thread {
                 //执行异步响应
                 if (response.cacheEntry != null) {
                     if (request.getCallback() != null) {
+                        if (response.cacheEntry.data == null) {
+                            response.cacheEntry.data = new byte[0];
+                        }
                         request.getCallback().onSuccessInAsync(response.cacheEntry.data);
                     }
                     mPoster.post(new Result(request.getUrl(),
@@ -115,8 +117,6 @@ public class NetworkDispatcher extends Thread {
                             response.cacheEntry.data));
                 }
                 mDelivery.postResponse(request, response);
-
-
             } catch (VolleyError volleyError) {
                 parseAndDeliverNetworkError(request, volleyError);
             } catch (Exception e) {

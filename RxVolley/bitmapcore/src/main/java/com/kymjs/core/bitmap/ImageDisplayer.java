@@ -27,9 +27,7 @@ import com.kymjs.rxvolley.http.Request;
 import com.kymjs.rxvolley.http.RequestQueue;
 import com.kymjs.rxvolley.http.VolleyError;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 图片显示器
@@ -82,7 +80,7 @@ public class ImageDisplayer {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    callback.onSuccess(Collections.<String, String>emptyMap(), cachedBitmap);
+                    callback.onSuccess(cachedBitmap);
                     callback.onFinish();
                 }
             });
@@ -118,8 +116,8 @@ public class ImageDisplayer {
     protected Request<Bitmap> makeImageRequest(final BitmapRequestConfig config) {
         return new ImageRequest(config, new HttpCallback() {
             @Override
-            public void onSuccess(Map<String, String> header, Bitmap t) {
-                onGetImageSuccess(config.mUrl, t);
+            public <T> void onSuccess(T t) {
+                onGetImageSuccess(config.mUrl, (Bitmap) t);
             }
 
             @Override
@@ -178,8 +176,7 @@ public class ImageDisplayer {
                             }
                             if (even.getError() == null) {
                                 imageBale.mBitmap = even.mBitmapRespond;
-                                imageBale.mCallback.onSuccess(
-                                        Collections.<String, String>emptyMap(), imageBale.mBitmap);
+                                imageBale.mCallback.onSuccess(imageBale.mBitmap);
                             } else {
                                 imageBale.mCallback.onFailure(-1, even.getError().getMessage());
                             }
