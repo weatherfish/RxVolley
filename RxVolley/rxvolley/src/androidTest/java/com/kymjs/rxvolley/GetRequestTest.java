@@ -81,8 +81,11 @@ public class GetRequestTest extends AndroidTestCase {
     public void tearDown() throws Exception {
     }
 
+    /**
+     * 测试convertAdapter
+     */
     @Test
-    public void testGetWithBuild() throws Exception {
+    public void testConvertAdapterWithBuild() throws Exception {
         final String STR = "转换后的字符串";
         new RxVolley.Builder().url("http://www.oschina.net/action/api/news_list")
                 .convertAdapter(new IConvertAdapter<String>() {

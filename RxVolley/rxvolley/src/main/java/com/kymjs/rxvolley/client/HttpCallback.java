@@ -62,7 +62,6 @@ public abstract class HttpCallback {
      * @param t       HttpRequest返回信息
      */
     public void onSuccess(Map<String, String> headers, byte[] t) {
-        onSuccess(new String(t));
     }
 
     /**
