@@ -33,14 +33,13 @@ import com.kymjs.core.bitmap.toolbox.CreateBitmap;
 import com.kymjs.core.bitmap.toolbox.DensityUtils;
 import com.kymjs.rxvolley.RxVolley;
 import com.kymjs.rxvolley.client.HttpCallback;
-import com.kymjs.rxvolley.http.Request;
 import com.kymjs.rxvolley.http.RequestQueue;
 import com.kymjs.rxvolley.http.RetryPolicy;
-import com.kymjs.rxvolley.rx.RxBus;
 import com.kymjs.rxvolley.rx.Result;
+import com.kymjs.rxvolley.rx.RxBus;
 import com.kymjs.rxvolley.toolbox.Loger;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,7 +63,7 @@ public final class BitmapCore {
 
     private final static ExecutorService DEFAULT_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
-    private static ArrayList<ImageBale> requestArray = new ArrayList<>();
+    private static LinkedList<ImageBale> requestArray = new LinkedList<>();
 
     /**
      * 获取一个请求队列(单例)
@@ -111,7 +110,6 @@ public final class BitmapCore {
     public static class Builder {
         private HttpCallback realCallback;
         private HttpCallback callback;
-        private Request<?> request;
         private View view;
         private BitmapRequestConfig config = new BitmapRequestConfig();
 
@@ -120,14 +118,6 @@ public final class BitmapCore {
          */
         public Builder callback(HttpCallback callback) {
             this.callback = callback;
-            return this;
-        }
-
-        /**
-         * HttpRequest
-         */
-        public Builder setRequest(Request<?> request) {
-            this.request = request;
             return this;
         }
 
@@ -169,6 +159,16 @@ public final class BitmapCore {
 
         public Builder putHeader(String k, String v) {
             this.config.putHeader(k, v);
+            return this;
+        }
+
+        /**
+         * 使用并行访问本地图片
+         *
+         * @param useAsync true为并行,false为串行
+         */
+        public Builder useAsyncLoadDiskImage(boolean useAsync) {
+            this.config.useAsyncLoadDisk = useAsync;
             return this;
         }
 
@@ -241,13 +241,6 @@ public final class BitmapCore {
          * 安全校验
          */
         private synchronized void build() {
-            if (view == null) {
-                Loger.debug("view is null");
-                if (callback != null)
-                    callback.onFailure(-1, "view is null");
-                return;
-            }
-
             if (TextUtils.isEmpty(config.mUrl)) {
                 Loger.debug("image url is empty");
                 doFailure(view, config.errorDrawable, config.errorRes);
@@ -256,20 +249,20 @@ public final class BitmapCore {
                 return;
             }
 
-            if (config.maxWidth == BitmapRequestConfig.DEF_WIDTH_HEIGHT &&
-                    config.maxHeight == BitmapRequestConfig.DEF_WIDTH_HEIGHT) {
-                config.maxWidth = view.getWidth();
-                config.maxHeight = view.getHeight();
-                if (config.maxWidth <= 0) {
-                    config.maxWidth = DensityUtils.getScreenW(view.getContext()) / 2;
+            if (config.mShouldCache == null) {
+                config.mShouldCache = Boolean.TRUE;
+            }
+
+            if (view != null) {
+                if (config.maxWidth == BitmapRequestConfig.DEF_WIDTH_HEIGHT &&
+                        config.maxHeight == BitmapRequestConfig.DEF_WIDTH_HEIGHT) {
+                    config.maxWidth = view.getWidth();
+                    config.maxHeight = view.getHeight();
+                } else if (config.maxWidth == BitmapRequestConfig.DEF_WIDTH_HEIGHT) {
+                    config.maxWidth = DensityUtils.getScreenW(view.getContext());
+                } else if (config.maxHeight == BitmapRequestConfig.DEF_WIDTH_HEIGHT) {
+                    config.maxHeight = DensityUtils.getScreenH(view.getContext());
                 }
-                if (config.maxHeight <= 0) {
-                    config.maxHeight = DensityUtils.getScreenH(view.getContext()) / 2;
-                }
-            } else if (config.maxWidth == BitmapRequestConfig.DEF_WIDTH_HEIGHT) {
-                config.maxWidth = DensityUtils.getScreenW(view.getContext());
-            } else if (config.maxHeight == BitmapRequestConfig.DEF_WIDTH_HEIGHT) {
-                config.maxHeight = DensityUtils.getScreenH(view.getContext());
             }
 
             if (config.loadRes == 0 && config.loadDrawable == null) {
@@ -283,7 +276,8 @@ public final class BitmapCore {
                 realCallback = new HttpCallback() {
                     @Override
                     public void onPreStart() {
-                        view.setTag(config.mUrl);
+                        if (view != null)
+                            view.setTag(config.mUrl);
                         if (callback != null) callback.onPreStart();
                     }
 
@@ -300,7 +294,7 @@ public final class BitmapCore {
 
                     @Override
                     public void onFailure(int errorNo, String strMsg) {
-                        if (config.mUrl.equals(view.getTag())) {
+                        if (view != null && config.mUrl.equals(view.getTag())) {
                             setImageWithResource(view, config.errorDrawable, config.errorRes);
                         }
                         if (callback != null) callback.onFailure(errorNo, strMsg);
@@ -309,11 +303,18 @@ public final class BitmapCore {
                     @Override
                     public void onFinish() {
                         if (callback != null) callback.onFinish();
+                        //从正在请求的列表中移除
+                        for (ImageBale bale : requestArray) {
+                            if (config.mUrl.equals(bale.getRequestUrl())) {
+                                requestArray.remove(bale);
+                                break;
+                            }
+                        }
                     }
 
                     @Override
                     public void onSuccess(Map<String, String> headers, Bitmap bitmap) {
-                        if (config.mUrl.equals(view.getTag())) {
+                        if (view != null && config.mUrl.equals(view.getTag())) {
                             setViewImage(view, bitmap);
                         }
                         if (callback != null) callback.onSuccess(headers, bitmap);
@@ -323,22 +324,26 @@ public final class BitmapCore {
 
         public Observable<Bitmap> getResult() {
             doTask();
-            return RxBus.getDefault().take(config.mUrl)
+            return RxBus.getDefault().take(Result.class)
                     .filter(new Func1<Result, Boolean>() {
                         @Override
                         public Boolean call(Result result) {
-                            return result != null
-                                    && result.data != null
-                                    && result.data.length != 0;
+                            return result != null;
+                        }
+                    })
+                    .filter(new Func1<Result, Boolean>() {
+                        @Override
+                        public Boolean call(Result result) {
+                            return config.mUrl.equals(result.url);
                         }
                     })
                     .map(new Func1<Result, Bitmap>() {
                         @Override
                         public Bitmap call(Result result) {
-                            return CreateBitmap.create(result.data,
-                                    config.maxWidth, config.maxHeight);
+                            return CreateBitmap.create(result.data, config.maxWidth, config.maxHeight);
                         }
                     })
+                    .take(1)
                     .subscribeOn(Schedulers.io());
         }
 
@@ -348,7 +353,7 @@ public final class BitmapCore {
                 ImageBale bale = getDisplayer().get(config, realCallback);
                 requestArray.add(bale);
             } else {
-                getDiskDisplayer().load(config, realCallback, true);
+                getDiskDisplayer().load(config, realCallback, config.useAsyncLoadDisk);
             }
         }
     }
@@ -423,6 +428,7 @@ public final class BitmapCore {
     }
 
     public static void setViewImage(View view, int background) {
+        if (view == null) return;
         if (view instanceof ImageView) {
             ((ImageView) view).setImageResource(background);
         } else {
@@ -433,6 +439,7 @@ public final class BitmapCore {
     @SuppressLint("NewApi")
     @SuppressWarnings("deprecation")
     public static void setViewImage(View view, Bitmap background) {
+        if (view == null) return;
         if (view instanceof ImageView) {
             ((ImageView) view).setImageBitmap(background);
         } else {
@@ -449,6 +456,7 @@ public final class BitmapCore {
     @SuppressLint("NewApi")
     @SuppressWarnings("deprecation")
     public static void setViewImage(View view, Drawable background) {
+        if (view == null) return;
         if (view instanceof ImageView) {
             ((ImageView) view).setImageDrawable(background);
         } else {

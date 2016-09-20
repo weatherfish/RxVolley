@@ -1,12 +1,16 @@
-package com.kymjs.rxvolley;
+package com.kymjs.okhttp;
 
 import android.os.Looper;
 import android.test.AndroidTestCase;
 
+import com.kymjs.rxvolley.RxVolley;
 import com.kymjs.rxvolley.client.HttpCallback;
 import com.kymjs.rxvolley.client.HttpParams;
+import com.kymjs.rxvolley.client.ProgressListener;
+import com.kymjs.rxvolley.http.RequestQueue;
 import com.kymjs.rxvolley.toolbox.FileUtils;
 import com.kymjs.rxvolley.toolbox.Loger;
+import com.squareup.okhttp.OkHttpClient;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +27,9 @@ public class PostRequestTest extends AndroidTestCase {
 
     @Before
     public void setUp() throws Exception {
+        RxVolley.setRequestQueue(RequestQueue.newRequestQueue(RxVolley.CACHE_FOLDER,
+                new OkHttpStack(new OkHttpClient())));
+        
         callback = new HttpCallback() {
             @Override
             public void onPreStart() {
@@ -78,45 +85,8 @@ public class PostRequestTest extends AndroidTestCase {
     /**
      * 不知道为什么,在测试类中写,log会打印不完整,但是在activity中调用,日志就是完整的
      */
-//    @Test
-//    public void testUploadProgress() throws Exception {
-//        HttpParams params = new HttpParams();
-//
-//        params.putHeaders("cookie", "aliyungf_tc=AQAAAOEM/UExEAsAUAYscy4Da0FfTWqX;" +
-//                "oscid=vv%2BiiKldi6wRaKbbRig0DDvMcIURmo56ZCZD2bfC83AsmxdhUxEVnr3ORNGz7BjiFlkpGQHUKJoRTzVAwy3oVtcO7JsM4nRIjEl6ZgM%2BmZgplCH0foAIiQ%3D%3D;");
-//
-//        params.put("uid", 863548);
-//        params.put("msg", "睡觉");
-//        params.put("img", new File(FileUtils.getSDCardPath() + "/request.png"));
-//
-//        RxVolley.post("http://192.168.1.11/action/api/tweet_pub", params,
-//                new ProgressListener() {
-//                    @Override
-//                    public void onProgress(long transferredBytes, long totalSize) {
-//                        //防止日志太多刷屏
-//                        if (transferredBytes % 10000 == 0) {
-//                            Loger.debug(transferredBytes + "=====" + totalSize);
-//                        }
-//                        assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
-//                    }
-//                }, callback);
-//    }
-//
-//    @Test
-//    public void testPost() throws Exception {
-//        HttpParams params = new HttpParams();
-//
-//        params.putHeaders("cookie", "aliyungf_tc=AQAAAOEM/UExEAsAUAYscy4Da0FfTWqX;" +
-//                "oscid=vv%2BiiKldi6wRaKbbRig0DDvMcIURmo56ZCZD2bfC83AsmxdhUxEVnr3ORNGz7BjiFlkpGQHUKJoRTzVAwy3oVtcO7JsM4nRIjEl6ZgM%2BmZgplCH0foAIiQ%3D%3D;");
-//
-//        params.put("uid", 863548);
-//        params.put("msg", "睡觉");
-//        params.put("img", new File(FileUtils.getSDCardPath() + "/request.png"));
-//
-//        RxVolley.post("http://192.168.1.11/action/api/tweet_pub", params, callback);
-//    }
     @Test
-    public void testPost2() throws Exception {
+    public void testUploadProgress() throws Exception {
         HttpParams params = new HttpParams();
 
         params.putHeaders("cookie", "aliyungf_tc=AQAAAOEM/UExEAsAUAYscy4Da0FfTWqX;" +
@@ -126,12 +96,30 @@ public class PostRequestTest extends AndroidTestCase {
         params.put("msg", "睡觉");
         params.put("img", new File(FileUtils.getSDCardPath() + "/request.png"));
 
-        new RxVolley.Builder()
-                .url("http://192.168.1.11/action/api/tweet_pub")
-                .httpMethod(RxVolley.Method.POST)
-                .cacheTime(6)
-                .params(params)
-                .callback(callback)
-                .doTask();
+        RxVolley.post("http://192.168.1.11/action/api/tweet_pub", params,
+                new ProgressListener() {
+                    @Override
+                    public void onProgress(long transferredBytes, long totalSize) {
+                        //防止日志太多刷屏
+                        if (transferredBytes % 10000 == 0) {
+                            Loger.debug(transferredBytes + "=====" + totalSize);
+                        }
+                        assertTrue(Thread.currentThread() == Looper.getMainLooper().getThread());
+                    }
+                }, callback);
+    }
+
+    @Test
+    public void testPost() throws Exception {
+        HttpParams params = new HttpParams();
+
+        params.putHeaders("cookie", "aliyungf_tc=AQAAAOEM/UExEAsAUAYscy4Da0FfTWqX;" +
+                "oscid=vv%2BiiKldi6wRaKbbRig0DDvMcIURmo56ZCZD2bfC83AsmxdhUxEVnr3ORNGz7BjiFlkpGQHUKJoRTzVAwy3oVtcO7JsM4nRIjEl6ZgM%2BmZgplCH0foAIiQ%3D%3D;");
+
+        params.put("uid", 863548);
+        params.put("msg", "睡觉");
+        params.put("img", new File(FileUtils.getSDCardPath() + "/request.png"));
+
+        RxVolley.post("http://192.168.1.11/action/api/tweet_pub", params, callback);
     }
 }

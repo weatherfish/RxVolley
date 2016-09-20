@@ -25,6 +25,7 @@ import com.kymjs.rxvolley.client.HttpParams;
 import com.kymjs.rxvolley.client.JsonRequest;
 import com.kymjs.rxvolley.client.ProgressListener;
 import com.kymjs.rxvolley.client.RequestConfig;
+import com.kymjs.rxvolley.http.DefaultRetryPolicy;
 import com.kymjs.rxvolley.http.Request;
 import com.kymjs.rxvolley.http.RequestQueue;
 import com.kymjs.rxvolley.http.RetryPolicy;
@@ -36,6 +37,7 @@ import com.kymjs.rxvolley.toolbox.FileUtils;
 import java.io.File;
 
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * 主入口
@@ -139,6 +141,15 @@ public class RxVolley {
             this.request = request;
             return this;
         }
+
+        /**
+         * 每个request可以设置一个标志,用于在cancel()时找到
+         */
+        public Builder setTag(Object tag) {
+            this.httpConfig.mTag = tag;
+            return this;
+        }
+
 
         /**
          * HttpRequest的配置器
@@ -258,6 +269,7 @@ public class RxVolley {
                     request = new FormRequest(httpConfig, params, callback);
                 }
 
+                request.setTag(httpConfig.mTag);
                 request.setOnProgressListener(progressListener);
 
                 if (TextUtils.isEmpty(httpConfig.mUrl)) {
@@ -275,7 +287,14 @@ public class RxVolley {
          */
         public Observable<Result> getResult() {
             doTask();
-            return RxBus.getDefault().take(httpConfig.mUrl);
+            return RxBus.getDefault().take(Result.class)
+                    .filter(new Func1<Result, Boolean>() {
+                        @Override
+                        public Boolean call(Result result) {
+                            return httpConfig.mUrl.equals(result.url);
+                        }
+                    })
+                    .take(1);
         }
 
         /**
@@ -344,7 +363,10 @@ public class RxVolley {
             progressListener, HttpCallback callback) {
         RequestConfig config = new RequestConfig();
         config.mUrl = url;
+        config.mRetryPolicy = new DefaultRetryPolicy(DefaultRetryPolicy.DEFAULT_TIMEOUT_MS,
+                20, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT);
         FileRequest request = new FileRequest(storeFilePath, config, callback);
+        request.setTag(url);
         request.setOnProgressListener(progressListener);
         new Builder().setRequest(request).doTask();
     }

@@ -24,6 +24,7 @@ import android.os.Process;
 import com.kymjs.rxvolley.interf.ICache;
 import com.kymjs.rxvolley.interf.IDelivery;
 import com.kymjs.rxvolley.interf.INetwork;
+import com.kymjs.rxvolley.rx.Result;
 import com.kymjs.rxvolley.rx.RxBus;
 import com.kymjs.rxvolley.toolbox.Loger;
 
@@ -73,6 +74,7 @@ public class NetworkDispatcher extends Thread {
     @Override
     public void run() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+        int stateCode = -1;
         while (true) {
             Request<?> request;
             try {
@@ -89,10 +91,10 @@ public class NetworkDispatcher extends Thread {
                     request.finish("任务已经取消");
                     continue;
                 }
-
                 mDelivery.postStartHttp(request);
                 addTrafficStatsTag(request);
                 NetworkResponse networkResponse = mNetwork.performRequest(request);
+                stateCode = networkResponse.statusCode;
                 // 如果这个响应已经被分发，则不会再次分发
                 if (networkResponse.notModified && request.hasHadResponseDelivered()) {
                     request.finish("已经分发过本响应");
@@ -105,27 +107,25 @@ public class NetworkDispatcher extends Thread {
                 }
                 request.markDelivered();
                 //执行异步响应
-                if (response.cacheEntry != null) {
+                if (networkResponse.data != null) {
                     if (request.getCallback() != null) {
-                        request.getCallback().onSuccessInAsync(response.cacheEntry.data);
+                        request.getCallback().onSuccessInAsync(networkResponse.data);
                     }
-                    mPoster.put(request.getUrl(),
-                            response.cacheEntry.responseHeaders, response.cacheEntry.data);
+                    mPoster.post(new Result(request.getUrl(), networkResponse.data, networkResponse.headers));
                 }
                 mDelivery.postResponse(request, response);
-
-
             } catch (VolleyError volleyError) {
-                parseAndDeliverNetworkError(request, volleyError);
+                parseAndDeliverNetworkError(request, volleyError, stateCode);
             } catch (Exception e) {
                 Loger.debug(String.format("Unhandled exception %s", e.getMessage()));
-                mDelivery.postError(request, new VolleyError(e));
+                parseAndDeliverNetworkError(request, new VolleyError(e), stateCode);
             }
         }
     }
 
-    private void parseAndDeliverNetworkError(Request<?> request, VolleyError error) {
+    private void parseAndDeliverNetworkError(Request<?> request, VolleyError error, int stateCode) {
         error = request.parseNetworkError(error);
         mDelivery.postError(request, error);
+        mPoster.post(new Result(request.getUrl(), error, stateCode));
     }
 }

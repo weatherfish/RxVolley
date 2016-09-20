@@ -15,6 +15,9 @@
  */
 package com.kymjs.rxvolley.rx;
 
+import com.kymjs.rxvolley.http.Response;
+import com.kymjs.rxvolley.http.VolleyError;
+
 import java.util.Map;
 
 /**
@@ -23,11 +26,41 @@ import java.util.Map;
  * @author kymjs (http://www.kymjs.com/) on 12/22/15.
  */
 public class Result {
-    public Map<String, String> header;
-    public byte[] data;
 
-    public Result(Map<String, String> header, byte[] data) {
-        this.header = header;
-        this.data = data;
+    public String url;
+    public byte[] data;
+    public VolleyError error;
+    public Map<String, String> headers;
+    public int errorCode;
+
+    public boolean isSuccess() {
+        return error == null;
+    }
+
+    public Result(String url, Response<byte[]> response) {
+        this.url = url;
+        this.data = response.result;
+        this.error = response.error;
+        this.headers = response.headers;
+    }
+
+    public Result(String url, byte[] result, Map<String, String> headers) {
+        this.url = url;
+        this.data = result;
+        this.error = null;
+        this.headers = headers;
+    }
+
+    public Result(String url, byte[] result) {
+        this.url = url;
+        this.data = result;
+        this.error = null;
+        this.headers = null;
+    }
+
+    public Result(String url, VolleyError error, int errorCode) {
+        this.url = url;
+        this.error = error;
+        this.errorCode = errorCode;
     }
 }

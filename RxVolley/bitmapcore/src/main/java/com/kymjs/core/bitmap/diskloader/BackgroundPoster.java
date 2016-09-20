@@ -19,10 +19,9 @@ import com.kymjs.core.bitmap.DiskImageDisplayer;
 import com.kymjs.core.bitmap.client.BitmapCore;
 import com.kymjs.core.bitmap.client.BitmapRequestConfig;
 import com.kymjs.rxvolley.client.HttpCallback;
+import com.kymjs.rxvolley.rx.Result;
 import com.kymjs.rxvolley.rx.RxBus;
 import com.kymjs.rxvolley.toolbox.Loger;
-
-import java.util.Collections;
 
 /**
  * 从本地加载一个bitmap的任务,串行异步加载的实现,思路取自EventBus
@@ -67,8 +66,7 @@ public class BackgroundPoster extends AsyncPoster {
                     }
                     byte[] bytes = loadFromFile(pendingPost.config.mUrl, pendingPost.config
                             .maxWidth, pendingPost.config.maxHeight, pendingPost.callback);
-                    RxBus.getDefault().put(pendingPost.config.mUrl,
-                            Collections.<String, String>emptyMap(), bytes);
+                    RxBus.getDefault().post(new Result(pendingPost.config.mUrl, bytes));
                     PendingPost.releasePendingPost(pendingPost);
                 }
             } catch (InterruptedException e) {

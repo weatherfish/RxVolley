@@ -137,6 +137,22 @@ public class HttpParams {
     }
 
     /**
+     * 添加二进制文件参数
+     *
+     * @param key           参数key
+     * @param rawData       二进制参数body
+     * @param type          参数的contentType
+     * @param fileName      二进制文件名,可以为空
+     */
+    public void put(final String key, final byte[] rawData, String type, String fileName) {
+        hasFile = true;
+        if (TextUtils.isEmpty(fileName)) {
+            fileName = "RxVolleyFile";
+        }
+        writeToOutputStream(key, rawData, type, BINARY_ENCODING, fileName);
+    }
+
+    /**
      * 将数据写入到输出流中
      */
     private void writeToOutputStream(String paramName, byte[] rawData,
